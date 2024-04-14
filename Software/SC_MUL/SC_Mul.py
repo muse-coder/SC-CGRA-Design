@@ -15,39 +15,44 @@ def tensorGenBitstreamSeries(rngSeq,tensorInputData,index,dataWidth = 8  ):
     length = len(rngSeq)
     tmp =((1<<(int(math.log2(length))+1))-1)
     shiftTime =dataWidth-int(math.log2(length))-1
-    quantizeData_new = ((tmp << shiftTime) &tensorInputData) >> (shiftTime)
-        # (torch.round(tensorInputData / (2 ** (dataWidth - math.log2(length))))).to(tensorInputData.device)
+    if(math.log2(length)==dataWidth):
+        quantizeData = tensorInputData
+        singleBitstreamMul = (quantizeData> (rngSeq[index])).int()
 
-    quantizeData = (torch.round(tensorInputData / (2 ** (dataWidth - math.log2(length))))).to(tensorInputData.device)
+    else:
+        quantizeData = ((tmp << shiftTime) &tensorInputData) >> (shiftTime)
+        singleBitstreamMul = (quantizeData> (rngSeq[index]*2)).int()
 
-    singleBitstreamMul = (quantizeData_new> (rngSeq[index]*2)).int()
+
 
     return singleBitstreamMul
 
 
 
-def TensorLeftShiftBits(data,dataWidth):
+def TensorLeftShiftBits(data,dataWidth,expand=True,sobolWidth = 4):
     # 将张量转换为整数类型（如果是浮点数）
     # dataExceptZero = torch.where(data>0 , data, 2**dataWidth-1)
     dividedData = (2**dataWidth-1)/data
     log2Result =torch.log2(dividedData)
     log2ResultFloor = torch.floor(log2Result).to(torch.int8)
+    if(not expand):
+        log2ResultFloor = torch.zeros_like(data)
     return log2ResultFloor
 
 
 
 
-def TensorEnlargeModule(tensorData, dataWidth):
+def TensorEnlargeModule(tensorData, dataWidth,expand=True,sobolWidth = 4):
     # leftShiftTimeTensor = dataWidth - TensorFindHighestOne(tensorData) - 1
-    leftShiftTimeTensor = TensorLeftShiftBits(data= tensorData , dataWidth= dataWidth)
+    leftShiftTimeTensor = TensorLeftShiftBits(data= tensorData , dataWidth= dataWidth,expand = expand , sobolWidth= sobolWidth)
     enlargedNumberTensor = tensorData <<leftShiftTimeTensor
 
     return enlargedNumberTensor.to(torch.int32) , leftShiftTimeTensor
 
-def matrixMulSeriesSC(tensorData_1 , tensorData_2 , SobolSeq1 , SobolSeq2, AscendingSeq , dataWidth , device):
+def matrixMulSeriesSC(tensorData_1 , tensorData_2 , SobolSeq1 , SobolSeq2, AscendingSeq , dataWidth , device , expand = True):
     bitstreamLength = len(SobolSeq1)
-    enlargedData_1 , dataLeftShiftTime_1 =  TensorEnlargeModule(tensorData=abs(tensorData_1), dataWidth=dataWidth)
-    enlargedData_2 , dataLeftShiftTime_2 =  TensorEnlargeModule(tensorData=abs(tensorData_2), dataWidth=dataWidth)
+    enlargedData_1 , dataLeftShiftTime_1 =  TensorEnlargeModule(tensorData=abs(tensorData_1), dataWidth=dataWidth , expand= expand , sobolWidth=int(math.log2(bitstreamLength)))
+    enlargedData_2 , dataLeftShiftTime_2 =  TensorEnlargeModule(tensorData=abs(tensorData_2), dataWidth=dataWidth , expand= expand , sobolWidth=int(math.log2(bitstreamLength)))
     '''
     Begin:将数据维度转换成合适shape
     '''
@@ -65,20 +70,20 @@ def matrixMulSeriesSC(tensorData_1 , tensorData_2 , SobolSeq1 , SobolSeq2, Ascen
         tensorBit_2 = tensorGenBitstreamSeries(rngSeq = SobolSeq2 , tensorInputData= enlargedData_2 ,index= i , dataWidth= dataWidth).to(device)
         asendingBit_3 = tensorGenBitstreamSeries(rngSeq=AscendingSeq, tensorInputData=enlargedData_2, index=i,
                                                dataWidth=dataWidth).to(device)
-        # tensor1 = tensor1.to((torch.int32)) + tensorBit_1.to((torch.int32))
-        # tensor2 = tensor2.to((torch.int32)) + tensorBit_2.to((torch.int32))
-        # tensor3 = tensor3.to((torch.int32)) + asendingBit_3.to((torch.int32))
+        tensor1 = tensor1.to((torch.int32)) + tensorBit_1.to((torch.int32))
+        tensor2 = tensor2.to((torch.int32)) + tensorBit_2.to((torch.int32))
+        tensor3 = tensor3.to((torch.int32)) + asendingBit_3.to((torch.int32))
 
         res_Stochastic = res_Stochastic + (torch.bitwise_and(tensorBit_1 , tensorBit_2)).to(torch.int32)
         res_Unary = res_Unary + (torch.bitwise_and(tensorBit_1 , asendingBit_3)).to(torch.int32)
 
-    # tensor1 = tensor1.to(torch.float64) *(2**(dataWidth - math.log2(bitstreamLength)-dataLeftShiftTime_1))
-    # tensor2 = tensor2.to(torch.float64) *(2**(dataWidth - math.log2(bitstreamLength)-dataLeftShiftTime_2))
-    # tensor3 = tensor3.to(torch.float64) *(2**(dataWidth - math.log2(bitstreamLength)-dataLeftShiftTime_2))
+    tensor1 = tensor1.to(torch.float64) *(2**(dataWidth - math.log2(bitstreamLength)-dataLeftShiftTime_1))
+    tensor2 = tensor2.to(torch.float64) *(2**(dataWidth - math.log2(bitstreamLength)-dataLeftShiftTime_2))
+    tensor3 = tensor3.to(torch.float64) *(2**(dataWidth - math.log2(bitstreamLength)-dataLeftShiftTime_2))
 
-    # if not torch.equal(tensor2, tensor3):
-    #     diff_tensor = tensor2 != tensor3
-    #     diff_values = tensor2[diff_tensor].tolist() + tensor3[diff_tensor].tolist()
+    if not torch.equal(tensor2, tensor3):
+        diff_tensor = tensor2 != tensor3
+        diff_values = tensor2[diff_tensor].tolist() + tensor3[diff_tensor].tolist()
     res_Unary  = res_Unary  * dataScaledFactor
     res_Unary  = res_Unary .to(torch.int32)
 
@@ -86,7 +91,7 @@ def matrixMulSeriesSC(tensorData_1 , tensorData_2 , SobolSeq1 , SobolSeq2, Ascen
     res_Stochastic = res_Stochastic.to(torch.int32)
     return res_Stochastic , res_Unary
 
-def calculate(SeqType,dataWidth):
+def calculate(SeqType,dataWidth,expand = True):
     dim = (1<<dataWidth)-1
     partition = 64
     dim_1= int((dim+1)/partition)
@@ -113,7 +118,7 @@ def calculate(SeqType,dataWidth):
             tensor2 = torch.arange(1, dim + 1,dtype=torch.int64).unsqueeze(0).expand(dim_1, dim_2).to(device)
             tensor1 = torch.where(tensor1<dim,tensor1,dim)
             (SCResult,UnaryResult )= matrixMulSeriesSC(tensorData_1=tensor1, tensorData_2=tensor2, SobolSeq1=tuples[0], SobolSeq2=tuples[1],AscendingSeq=ascendingSeq,
-                                                    dataWidth=dataWidth, device=device)
+                                                    dataWidth=dataWidth, device=device,expand=expand)
             accurateRes= tensor1 * tensor2
             SC_RED =    abs(1 - (SCResult.to(torch.float64) / accurateRes.to(torch.float64)))
             Unary_RED = abs(1 - (UnaryResult.to(torch.float64) / accurateRes.to(torch.float64)))
@@ -137,12 +142,16 @@ def calculate(SeqType,dataWidth):
     print(MREDGroup)
     print(MEDGroup)
     length = len(SeqType[0][0])
-    dir_name = "Result"
+    dir_name = "Result/"
 
     if not os.path.exists(dir_name):
         os.mkdir(dir_name)
 
-    fileName = dir_name+'/dataWidth_'+str(dataWidth)+"_"+str(length)+'_bitstream.txt'
+    fileName = 'dataWidth_'+str(dataWidth)+"_"+str(length)+'_bitstream.txt'
+    if(not expand):
+        fileName = '/origin_'+fileName
+
+    fileName = dir_name + fileName
     file = open(fileName, mode='w+')
     file.write("MRED:\n")
     for data in MREDGroup:
@@ -363,12 +372,12 @@ if __name__ == "__main__":
                    (sobol_256_4, sobol_256_5), (sobol_256_5, sobol_256_6), (sobol_256_6, sobol_256_7),
                    (sobol_256_7, sobol_256_8), (sobol_256_8, sobol_256_3)]
 
-    allTpye = [SeqType_16,SeqType_32]
-    # allTpye = [SeqType_16, SeqType_32,SeqType_64]
-    # allTpye = [SeqType_64, SeqType_128 , SeqType_256]
+    # allTpye = [SeqType_16,SeqType_32]
+    allTpye = [SeqType_16, SeqType_32,SeqType_64,SeqType_128 , SeqType_256]
+
 
     for types in allTpye:
-        calculate(types,dataWidth)
+        calculate(types,dataWidth,expand=False)
 
 
 
