@@ -1,0 +1,12 @@
+/.vscode
+/.idea
+/Hardware/Chisel/.bsp
+/Hardware/Chisel/.idea
+/Hardware/Chisel/.metals
+/Hardware/Chisel/project
+/Hardware/Chisel/.vscode
+/Software/SC_MUL/__pycache__
+/Software/SC_MUL/Result
+/Software/SC_MUL/SobolSequence
+/Hardware/RTL/8bitCompare/project_1
+/Hardware/RTL/8bitCompare/Dadda-Multiplier-using-CSA.zip
