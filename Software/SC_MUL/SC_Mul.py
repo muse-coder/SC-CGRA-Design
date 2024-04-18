@@ -11,10 +11,11 @@ def TensorGenBitstream(rngSeq,tensorInputData,index,dataWidth = 8 ):
 
 
 
-def tensorGenBitstreamSeries(rngSeq,tensorInputData,index,dataWidth = 8  ):
+def tensorGenBitstreamSeries(rngSeq,tensorInputData,index,dataWidth = 8,validWidth = 5 ):
     length = len(rngSeq)
     tmp =((1<<(int(math.log2(length))+1))-1)
-    shiftTime =dataWidth-int(math.log2(length))-1
+    # shiftTime =dataWidth-int(math.log2(length))-1
+    shiftTime =dataWidth-validWidth
     if(math.log2(length)==dataWidth):
         quantizeData = tensorInputData
         singleBitstreamMul = (quantizeData> (rngSeq[index])).int()
@@ -91,7 +92,7 @@ def matrixMulSeriesSC(tensorData_1 , tensorData_2 , SobolSeq1 , SobolSeq2, Ascen
     res_Stochastic = res_Stochastic.to(torch.int32)
     return res_Stochastic , res_Unary
 
-def calculate(SeqType,dataWidth,expand = True):
+def calculate(SeqType,dataWidth,expand = True,validWidth = 5):
     dim = (1<<dataWidth)-1
     partition = 64
     dim_1= int((dim+1)/partition)
@@ -147,7 +148,7 @@ def calculate(SeqType,dataWidth,expand = True):
     if not os.path.exists(dir_name):
         os.mkdir(dir_name)
 
-    fileName = 'dataWidth_'+str(dataWidth)+"_"+str(length)+'_bitstream.txt'
+    fileName = 'dataWidth_'+str(dataWidth)+"_"+str(length)+"valid_width_"+str(validWidth) +'_bitstream.txt'
     if(not expand):
         fileName = '/origin_'+fileName
 
@@ -375,9 +376,10 @@ if __name__ == "__main__":
     # allTpye = [SeqType_16,SeqType_32]
     allTpye = [SeqType_16, SeqType_32,SeqType_64,SeqType_128 , SeqType_256]
 
-
     for types in allTpye:
-        calculate(types,dataWidth,expand=False)
+        width = math.floor(math.log2(len(types[0][0])))
+        for validWidth in range(width,dataWidth+1):
+            calculate(types,dataWidth,expand=False,validWidth=validWidth)
 
 
 

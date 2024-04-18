@@ -3,15 +3,15 @@
 module simTest (
 
 );
-	parameter DATA_WIDTH =8;
+	parameter DATA_WIDTH =16;
     parameter cycle = 10;
     reg clk;
     reg rst;
     reg [DATA_WIDTH -1 :0] io_inputs_a; // a
     reg [DATA_WIDTH -1 :0] io_inputs_b;  // b
-    wire [(DATA_WIDTH<<1) - 1:0] mul_result_1;  // b
-	wire [(DATA_WIDTH<<1) - 1:0] mul_result_2;  // b
-
+    // wire [(DATA_WIDTH<<1) - 1:0] mul_result_1;  // b
+	// wire [(DATA_WIDTH<<1) - 1:0] mul_result_2;  // b
+	wire [(DATA_WIDTH<<1) - 1:0] mul_result;  
 
     always  #(cycle/2)  clk = ~ clk;
     integer i;
@@ -26,38 +26,38 @@ module simTest (
         end
     end
 
- 	 SC_Mul_8_top #(
-	 	.DATA_WIDTH(8),
-	 	.STREAM_LENGTH(16),
-	 	.ValidBitwth(5)
-	 ) SC_Mul_top (
-	 	.io_inputs_a	(io_inputs_a),
-	 	.io_inputs_b	(io_inputs_b),
-	 	.mul_result	(mul_result_1)
-     );
-	SC_Compress_dev_8_16#(
-		.DATA_WIDTH(8),
-		.STREAM_LENGTH(8),
-		.sobolValidBitwth(5)
-	)SC_Compress_dev_8_16_u(
-		.io_inputs_a(io_inputs_a),
-		.io_inputs_b(io_inputs_b),
-		.mul_result(mul_result_2)
-    );
-
-	// SC_Mul_16_top SC_Mul_16_top (
+ 	//  SC_Mul_8_top #(
+	//  	.DATA_WIDTH(8),
+	//  	.STREAM_LENGTH(16),
+	//  	.ValidBitwth(5)
+	//  ) SC_Mul_top (
+	//  	.io_inputs_a	(io_inputs_a),
+	//  	.io_inputs_b	(io_inputs_b),
+	//  	.mul_result	(mul_result_1)
+    //  );
+	// SC_Compress_dev_8_16#(
+	// 	.DATA_WIDTH(8),
+	// 	.STREAM_LENGTH(8),
+	// 	.sobolValidBitwth(5)
+	// )SC_Compress_dev_8_16_u(
 	// 	.io_inputs_a(io_inputs_a),
 	// 	.io_inputs_b(io_inputs_b),
-	// 	.mul_result(mul_result)
-	// );
+	// 	.mul_result(mul_result_2)
+    // );
 
-//	CosaimTop_16_top #(
-//		.DATA_WIDTH(DATA_WIDTH)
-//	) CosaimTop_16_top_u
-//	(
-//		.io_inputs_a(io_inputs_a),
-//		.io_inputs_b(io_inputs_b),
-//		.mul_result(mul_result)
+	SC_Mul_16_FSM_top SC_Mul_16_top (
+		.io_inputs_a(io_inputs_a),
+		.io_inputs_b(io_inputs_b),
+		.mul_result(mul_result)
+	);
+
+// 	CosaimTop_16_top #(
+// 		.DATA_WIDTH(DATA_WIDTH)
+// 	) CosaimTop_16_top_u
+// 	(
+// 		.io_inputs_a(io_inputs_a),
+// 		.io_inputs_b(io_inputs_b),
+// 		.mul_result(mul_result)
 //    );
     task MUL_test;
         @(posedge clk)begin
