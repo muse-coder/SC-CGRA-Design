@@ -1,0 +1,14 @@
+int img[N][N];
+int kernel[k][k];
+int a = k/2 , b= k/2;
+
+for i in range(a, N-a):
+        for j in range(b, N-b):
+            sum = 0
+            for u in range(-a, k-a ):
+                for v in range(-b, k-b):
+                        sum += img[i+u][j+v] * kernel[u+a][v+b];
+            dst[i, j] = sum
+return dst
+
+	

@@ -106,7 +106,18 @@ def calculate(SeqType,dataWidth,enlarge = True,validWidth = 5):
     AED_base = 1<<(dataWidth*2)
     # dim_1= dim
     dim_2 = dim
+    length = len(SeqType[0][0])
 
+    dir_name = "Result/" +"dataWidth_"+str(dataWidth)+"/"+str(length)+"_bitstream/"
+
+    if not os.path.exists(dir_name):
+        os.makedirs(dir_name,exist_ok=True)
+
+    fileName = str(validWidth)+ '_validWidth_.txt'
+    if(not enlarge):
+        fileName = 'origin_' + str(length) + '_bitstream.txt'
+
+    fileName = dir_name + fileName
     ascendingSeq = []
     for i in range(0,len(SeqType[0][0])):
         ascendingSeq.append(i)
@@ -152,17 +163,16 @@ def calculate(SeqType,dataWidth,enlarge = True,validWidth = 5):
 
     print(MREDGroup)
     print(MEDGroup)
-    length = len(SeqType[0][0])
-    dir_name = "Result/"
-
-    if not os.path.exists(dir_name):
-        os.mkdir(dir_name)
-
-    fileName = 'new_dataWidth_'+str(dataWidth)+"_precision_"+ str(length) +'_bitstream_' + str(validWidth)+ '_validWidth_.txt'
-    if(not enlarge):
-        fileName = 'origin_' + str(dataWidth)+'_precision_' + str(length) + '_bitstream.txt'
-
-    fileName = dir_name + fileName
+    # dir_name = "Result/" +"dataWidth_"+str(dataWidth)+"/"+str(length)+"_bitstream/"
+    #
+    # if not os.path.exists(dir_name):
+    #     os.mkdir(dir_name)
+    #
+    # fileName = str(validWidth)+ '_validWidth_.txt'
+    # if(not enlarge):
+    #     fileName = 'origin_' + str(length) + '_bitstream.txt'
+    #
+    # fileName = dir_name + fileName
     file = open(fileName, mode='w+')
     file.write("MRED:\n")
     for data in MREDGroup:
@@ -203,7 +213,7 @@ if __name__ == "__main__":
 
 
     # sobolTensor = torch.tensor(sobol_1).to(device)
-    dataWidth = 8
+    dataWidth = 16
 
     SeqType_16 = [(sobol_16[0], sobol_16[1]), (sobol_16[1], sobol_16[2]), (sobol_16[2], sobol_16[3]),
                   (sobol_16[3], sobol_16[4]), (sobol_16[4], sobol_16[5]), (sobol_16[5], sobol_16[6]),
@@ -228,17 +238,20 @@ if __name__ == "__main__":
     SeqType_512 = [(sobol_512[0], sobol_512[1]), (sobol_512[1], sobol_512[2]), (sobol_512[2], sobol_512[3]),
                    (sobol_512[3], sobol_512[4]), (sobol_512[4], sobol_512[5]), (sobol_512[5], sobol_512[6]),
                    (sobol_512[6], sobol_512[7]), (sobol_512[7], sobol_512[2])]
-    # allTpye = [SeqType_16,SeqType_32]
-    allTpye = [SeqType_16, SeqType_32,SeqType_64,SeqType_128 , SeqType_256,SeqType_512]
+    allTpye = [SeqType_16,SeqType_32]
+    # allTpye = [SeqType_16,SeqType_32,SeqType_64,SeqType_128 , SeqType_256,SeqType_512]
+    allTpye = [SeqType_16,SeqType_32,SeqType_64]
+    # allTpye = [SeqType_16]
     # allTpye = [SeqType_256]
-    allTpye = [SeqType_512]
-
-    for types in allTpye:
-        width = math.floor(math.log2(len(types[0][0])))
-        calculate(types,dataWidth,enlarge=False,validWidth=dataWidth)
+    # allTpye = [SeqType_512]
+    # allTpye = [SeqType_16, SeqType_32]
 
     # for types in allTpye:
     #     width = math.floor(math.log2(len(types[0][0])))
-    #     for validWidth in range(width,dataWidth+1):
-    #         calculate(types,dataWidth,enlarge=True,validWidth=validWidth)
+    #     calculate(types,dataWidth,enlarge=False,validWidth=dataWidth)
+
+    for types in allTpye:
+        width = math.floor(math.log2(len(types[0][0])))
+        # for validWidth in range(width,dataWidth+1):
+        calculate(types,dataWidth,enlarge=True,validWidth=width+1)
 

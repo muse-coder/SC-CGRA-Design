@@ -1,0 +1,16 @@
+*****sharpen*****
+sharpen
+ssim: 0.854890
+PSNR: 17.931182786213494
+
+
+sharpen
+ssim: 0.778563
+PSNR: 17.610405675846696
+
+
+compare approximate mote with accurate mode
+ssim: 0.916610
+####################################
+
+

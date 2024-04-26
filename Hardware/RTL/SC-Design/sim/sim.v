@@ -3,7 +3,7 @@
 module simTest (
 
 );
-	parameter DATA_WIDTH =16;
+	parameter DATA_WIDTH =8;
     parameter cycle = 10;
     reg clk;
     reg rst;
@@ -26,6 +26,16 @@ module simTest (
         end
     end
 
+	Mul #(
+		.DATA_WIDTH(8),
+		.OUT_WIDTH(16)
+	)
+	Mul_u	(
+	    .io_inputs_1(io_inputs_a), // a
+        .io_inputs_0(io_inputs_b),  // b
+        .io_outs_0(mul_result)
+    );
+
  	//  SC_Mul_8_top #(
 	//  	.DATA_WIDTH(8),
 	//  	.STREAM_LENGTH(16),
@@ -45,11 +55,11 @@ module simTest (
 	// 	.mul_result(mul_result_2)
     // );
 
-	SC_Mul_16_FSM_top SC_Mul_16_top (
-		.io_inputs_a(io_inputs_a),
-		.io_inputs_b(io_inputs_b),
-		.mul_result(mul_result)
-	);
+	// SC_Mul_16_FSM_top SC_Mul_16_top (
+	// 	.io_inputs_a(io_inputs_a),
+	// 	.io_inputs_b(io_inputs_b),
+	// 	.mul_result(mul_result)
+	// );
 
 // 	CosaimTop_16_top #(
 // 		.DATA_WIDTH(DATA_WIDTH)
